@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Trắc nghiệm giao thông</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    /* Reset CSS chuẩn môi trường tĩnh */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: linear-gradient(145deg, #f0f9ff 0%, #e6f0fa 100%); font-family: 'Inter', sans-serif; padding: 2rem 1.5rem; min-height: 100vh; }
+    .exam-wrapper { max-width: 1100px; margin: 0 auto; }
+    /* Panel bo góc đồ họa mềm cho Dashboard đầu trang */
+    .hero-panel { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border-radius: 2rem; box-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.08); padding: 1.5rem 2rem; margin-bottom: 2rem; border: 1px solid white; }
+    
+    .title-section { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 1rem; }
+    .badge-group { display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; }
+    .badge { background: white; border-radius: 100px; padding: 0.5rem 1.2rem; font-weight: 600; font-size: 0.9rem; box-shadow: 0 4px 8px rgba(0,0,0,0.02); display: inline-flex; align-items: center; gap: 10px; color: #1e293b; }
+    /* Bảng điện tử bấm giờ */
+    .timer-badge { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; font-size: 1.1rem; font-weight: 800; padding: 0.5rem 1.2rem; border-radius: 100px; display: none; align-items: center; gap: 8px; box-shadow: 0 4px 6px rgba(217, 119, 6, 0.1); }
+    .timer-badge.danger { background: #fef2f2; color: #ef4444; border-color: #fecaca; animation: pulse 1s infinite; }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+
+    .controls-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-top: 1rem; }
+    .mode-selector { display: flex; align-items: center; gap: 12px; background: #f1f5f9; padding: 8px 18px; border-radius: 50px; }
+    .mode-label { font-weight: 600; font-size: 0.85rem; color: #64748b; }
+    .mode-label.active { color: #3b82f6; }
+    /* Công tắc nút gạt CSS thuần */
+    .switch { position: relative; display: inline-block; width: 46px; height: 24px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #f97316; transition: .4s; border-radius: 34px; }
+    .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+    input:checked + .slider { background-color: #3b82f6; }
+    input:checked + .slider:before { transform: translateX(22px); }
+    
+    .btn { border: none; padding: 0.7rem 1.5rem; border-radius: 2rem; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; background: white; box-shadow: 0 4px 8px rgba(0,0,0,0.05); color: #1e293b; }
+    .btn-primary { background: #3b82f6; color: white; }
+    .btn-warning { background: #f97316; color: white; }
+    .btn-secondary { background: #64748b; color: white; }
+    
+    .bottom-action-bar { display: flex; justify-content: center; margin: 2.5rem 0 1rem 0; }
+    .btn-submit-large { padding: 1rem 3rem; font-size: 1.1rem; border-radius: 2.5rem; box-shadow: 0 10px 20px rgba(249, 115, 22, 0.2); }
+
+    /* Lưới chứa danh sách cấu trúc câu hỏi thẻ Card tĩnh */
+    .questions-grid { display: flex; flex-direction: column; gap: 1.5rem; }
+    .question-card { background: white; border-radius: 1.5rem; padding: 1.5rem; transition: all 0.2s; box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0; }
+    .question-card.correct-highlight { border-left: 8px solid #10b981; }
+    .question-card.wrong-highlight { border-left: 8px solid #ef4444; }
+    
+    .option-item.is-correct { background: #dcfce7 !important; border: 2.5px solid #10b981 !important; color: #15803d !important; font-weight: 600; }
+    .option-item.is-wrong { background: #fee2e2 !important; border: 2.5px solid #ef4444 !important; color: #b91c1c !important; }
+
+    .q-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 1.2rem; }
+    .q-num { background: #eef2ff; border-radius: 40px; padding: 0.2rem 0.9rem; font-weight: 700; color: #1e40af; font-size: 0.85rem; flex-shrink: 0; }
+    .q-text { font-weight: 700; font-size: 1.05rem; color: #0f172a; line-height: 1.5; white-space: pre-wrap; }
+    
+    /* CSS Cấu hình vùng vẽ Ảnh minh họa (Image Render) */
+    .q-images { margin-bottom: 1.2rem; display: flex; flex-direction: column; gap: 10px; }
+    .q-images img { max-width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+
+    .options-list { display: flex; flex-direction: column; gap: 0.85rem; }
+    .option-item { display: block; background: #f8fafc; padding: 0.9rem 1.4rem; border-radius: 1rem; transition: all 0.15s ease; border: 1.5px solid #e2e8f0; cursor: pointer; position: relative; font-size: 0.95rem; color: #334155; line-height: 1.4; }
+    .option-item input[type="radio"] { display: none; }
+    .option-item:has(input[type="radio"]:checked) { border: 2.5px solid #3b82f6; background-color: #f0f6ff; color: #1d4ed8; font-weight: 600; }
+
+    .answer-key { margin-top: 1rem; font-size: 0.9rem; background: #fef9e3; padding: 0.6rem 1.2rem; border-radius: 1rem; display: none; border: 1px solid #fde68a; color: #854d0e; }
+    
+    /* Kiến trúc Modal Lớp phủ nổi tĩnh */
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; z-index: 2000; opacity: 0; visibility: hidden; transition: all 0.3s; }
+    .modal-overlay.show { opacity: 1; visibility: visible; }
+    .modal-box { background: white; border-radius: 2rem; width: 90%; max-width: 500px; padding: 2.5rem 2rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); text-align: center; transform: translateY(20px); transition: all 0.3s; }
+    .modal-overlay.show .modal-box { transform: translateY(0); }
+    
+    /* Dashboard bí mật của Giáo viên */
+    .dashboard-modal { max-width: 800px; padding: 1.5rem; text-align: left; max-height: 90vh; overflow-y: auto; }
+    .dash-table { width: 100%; border-collapse: collapse; margin-top: 1rem; text-align: left; }
+    .dash-table th { background: #f1f5f9; padding: 10px; font-size: 0.85rem; color: #64748b; }
+    .dash-table td { padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; color: #1e293b; font-weight: 500; }
+    .loading-dash { text-align: center; padding: 2rem; color: #3b82f6; font-weight: bold; }
+
+    .toast-container { position: fixed; bottom: 2rem; right: 2rem; z-index: 3000; display: flex; flex-direction: column; gap: 0.8rem; }
+    .toast-custom { background: #1e293b; color: white; padding: 1rem 1.5rem; border-radius: 1rem; display: flex; align-items: center; gap: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); transform: translateX(100%); opacity: 0; transition: all 0.3s; border-left: 4px solid #3b82f6; }
+    .toast-custom.show { transform: translateX(0); opacity: 1; }
+  </style>
+</head>
+<body>
+
+<div class="modal-overlay show" id="loginModal" style="z-index: 9999;">
+  <div class="modal-box">
+    <h2 style="margin-bottom:10px; color:#1e293b;"><i class="fas fa-user-graduate" style="color:#3b82f6;"></i> Định Danh Học Sinh</h2>
+    <p style="margin-bottom:20px; color:#64748b; font-size:0.9rem;">Hệ thống sẽ ghi nhận điểm số tự động theo tên bạn nhập.</p>
+    <input type="text" id="userNameInput" placeholder="Nhập họ tên đầy đủ..." style="width:100%; padding:12px 15px; margin-bottom:20px; border-radius:10px; border:1.5px solid #e2e8f0; font-size:1rem; outline:none;">
+    <button class="btn btn-primary" onclick="startSession()" style="width:100%; justify-content:center; padding:12px; font-size:1rem;">Vào Thi</button>
+  </div>
+</div>
+
+<div class="exam-wrapper">
+  <div class="hero-panel">
+    <div class="title-section">
+      <div>
+        <h1 id="dynamicTitle" style="font-weight: 800; font-size: 1.6rem; color: #1e293b;">📚 Đang tải dữ liệu...</h1>
+        <p id="modeDescription" style="color: #64748b; margin-top: 6px; font-size: 0.9rem;">...</p>
+      </div>
+      <div class="badge-group">
+        <div class="badge" id="totalQuestionsBadge"><i class="fas fa-layer-group"></i> -- câu</div>
+        <div class="timer-badge" id="timerDisplay"></div>
+      </div>
+    </div>
+    <div class="controls-row">
+      <div class="mode-selector">
+        <span class="mode-label active" id="labelPractice">Luyện tập</span>
+        <label class="switch">
+          <input type="checkbox" id="modeToggle">
+          <span class="slider"></span>
+        </label>
+        <span class="mode-label" id="labelExam">Thi thử</span>
+      </div>
+      <button id="newExamBtn" class="btn btn-secondary"><i class="fas fa-random"></i> Trộn đề mới</button>
+    </div>
+  </div>
+
+  <div id="questionsContainer" class="questions-grid"></div>
+
+  <div class="bottom-action-bar">
+    <button id="submitBtn" class="btn btn-warning btn-submit-large" style="display: none;"><i class="fas fa-paper-plane"></i> NỘP BÀI</button>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+<div class="modal-overlay" id="customModal"><div class="modal-box" id="modalBox"></div></div>
+<div class="modal-overlay" id="dashModal"><div class="modal-box dashboard-modal" id="dashBox"></div></div>
+
+<script>
+  // =========================================================
+  // ⚙️ CẤU HÌNH API ĐÍCH TỚI GOOGLE SHEETS
+  // ➔ Copy và dán URL Web App (Google Apps Script) của bạn vào đây:
+  // =========================================================
+  const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyAjwra9HxC7oPc4c34q0tB7OibxCRmiUofG0GPgspgMEhRBZQwW65UmIIXqcfuHxjq/exec";
+  
+  // Mật mã PIN để mở khóa Dashboard quản lý giáo viên
+  const TEACHER_PIN = "161201"; 
+
+  // Mảng dữ liệu khai báo biến Toàn Cục
+  let currentRepoName = "Chung"; 
+  let originalBank = [];
+  let currentQuestions = [];    
+  let examSubmitted = false;
+  let isExamMode = false;
+  let examCountConfig = 20, timeLimitConfig = 15;
+  let countdownInterval;
+  let currentUser = "";
+
+  const questionsContainer = document.getElementById('questionsContainer');
+  const modeToggle = document.getElementById('modeToggle');
+  const submitBtn = document.getElementById('submitBtn');
+  const customModal = document.getElementById('customModal');
+  const dashModal = document.getElementById('dashModal');
+  const timerDisplay = document.getElementById('timerDisplay');
+
+  // Hàm xác thực tên khi bật Web App
+  function startSession() {
+    const name = document.getElementById('userNameInput').value.trim(); // Loại khoảng trắng
+    if (!name) return showToast("⚠️ Phải nhập họ tên để vào luồng thi!"); // Chặn nếu rỗng
+    currentUser = name;
+    document.getElementById('loginModal').classList.remove('show'); // Tắt UI hộp thoại
+    showToast(`Hệ thống mở khóa. Xin chào ${currentUser}!`);
+    
+    // Nạp luồng Fetch JSON sau khi danh tính được xác minh
+    fetch('questions.json').then(r => r.json()).then(data => {
+      document.getElementById('dynamicTitle').innerText = data.app_title || "Trắc nghiệm";
+      
+      // 🌟 Đọc tên Repo định tuyến cho Tab Sheets
+      currentRepoName = data.repo_name || "Chung"; 
+      
+      originalBank = data.questions || []; // Bơm ngân hàng dữ liệu câu hỏi mảng JSON
+      examCountConfig = data.exam_count || 20; // Bơm tham số chốt số lượng
+      timeLimitConfig = data.time_limit || 15; // Bơm tham số chốt thời gian
+      document.getElementById('labelExam').innerText = `Thi thử (${examCountConfig} câu)`; // Lên Text cho UI nút gạt
+      initApp(true); // Tiến hành chạy nạp Data lên DOM
+    });
+  }
+
+  // Hàm Reset Bộ máy trạng thái Web App
+  function initApp(isFirstLoad = false) {
+    isExamMode = modeToggle.checked;
+    examSubmitted = false;
+    clearInterval(countdownInterval); // Hủy bộ đếm nhịp cũ để tránh lặp xung đột
+    
+    document.getElementById('labelPractice').classList.toggle('active', !isExamMode);
+    document.getElementById('labelExam').classList.toggle('active', isExamMode);
+    document.getElementById('modeDescription').innerText = isExamMode ? `Thi thử: Giới hạn ${timeLimitConfig} phút, ${examCountConfig} câu ngẫu nhiên.` : "Luyện tập: Hiện đáp án ngay lập tức, không khóa bài.";
+    
+    submitBtn.style.display = isExamMode ? 'inline-flex' : 'none'; // Render trạng thái ẩn/hiện Button nộp
+    timerDisplay.style.display = isExamMode ? 'inline-flex' : 'none'; // Render bảng đếm
+    timerDisplay.classList.remove('danger');
+    
+    generateQuestions();
+  }
+
+  // Hàm Lấy Lọc Dữ liệu cho Khối Hiển thị DOM
+  function generateQuestions() {
+    let tempQuestions = [...originalBank]; // Áp dụng Clone Object
+    shuffleArray(tempQuestions); // Xáo ngẫu nhiên thứ tự gốc
+    if (isExamMode) {
+      tempQuestions = tempQuestions.slice(0, examCountConfig); // Chém mảng chuẩn theo Biến Cấu hình Python Set
+      startCountdownTimer(); // Bật đồng hồ hệ thống chạy ngầm
+    }
+
+    currentQuestions = tempQuestions.map((q, idx) => ({ 
+        ...q, 
+        shuffledOptions: shuffleArray([...q.options]), // Xáo trật tự mảng các đáp án nội tuyến
+        userAnswer: null, // Reset rỗng ô đáp án user
+        isAnswered: false // Reset cờ đánh dấu
+    }));
+
+    document.getElementById('totalQuestionsBadge').innerHTML = `<i class="fas fa-list"></i> Tổng: ${currentQuestions.length} câu`;
+    renderQuestions();
+  }
+
+  // Thuật toán Đồng hồ Đếm ngược Thời gian Thực
+  function startCountdownTimer() {
+    let timeRemaining = timeLimitConfig * 60; // Dịch biến cấu hình ra Giây
+    function updateDisplay() {
+      let m = Math.floor(timeRemaining / 60).toString().padStart(2, '0'); // Toán tử Floor ép nguyên
+      let s = (timeRemaining % 60).toString().padStart(2, '0'); // Toán tử Modulo lấy dư
+      timerDisplay.innerHTML = `<i class="fas fa-clock"></i> ${m}:${s}`;
+      if (timeRemaining <= 60 && timeRemaining > 0) timerDisplay.classList.add('danger'); // Hiệu ứng đỏ chớp tắt 60s cuối
+      else timerDisplay.classList.remove('danger');
+    }
+    updateDisplay(); // Nạp số ban đầu chống giật UI giây đầu
+    countdownInterval = setInterval(() => {
+      timeRemaining--;
+      updateDisplay();
+      if (timeRemaining <= 0) { // Chốt chặn Timeout
+        clearInterval(countdownInterval); // Phá hủy bộ lặp
+        showToast("HẾT GIỜ! Hệ thống tự động khóa sổ bài làm.");
+        processCalculatedScore(); // Cưỡng chế kích hoạt hàm tính và bắn điểm
+      }
+    }, 1000);
+  }
+
+  // Hàm Render cấu trúc Lưới Câu Hỏi DOM
+  function renderQuestions() {
+    questionsContainer.innerHTML = currentQuestions.map((q, idx) => {
+      // 🌟 MÓC HÌNH ẢNH: Bắn mảng JSON Base64 vào khối Image Card của trình duyệt
+      let imgHTML = '';
+      if(q.images && q.images.length > 0) {
+        imgHTML = `<div class="q-images">` + q.images.map(img => `<img src="${img}" alt="Tài liệu tham khảo đồ họa">`).join('') + `</div>`;
+      }
+      
+      return `
+      <div class="question-card" id="card-${idx}">
+        <div class="q-header">
+          <span class="q-num">Câu ${idx + 1}</span>
+          <span class="q-text">${q.question}</span>
+        </div>
+        ${imgHTML}
+        <div class="options-list">
+          ${q.shuffledOptions.map(opt => `
+            <label class="option-item" data-qidx="${idx}" data-val="${opt.replace(/"/g, '&quot;')}">
+              <input type="radio" name="q${idx}" value="${opt.replace(/"/g, '&quot;')}" ${q.isAnswered ? 'disabled' : ''}>
+              <span>${opt}</span>
+            </label>
+          `).join('')}
+        </div>
+        <div class="answer-key" id="key-${idx}">
+          <i class="fas fa-info-circle"></i> Đáp án đúng phân tích: <b>${q.correct_text}</b>
+        </div>
+      </div>
+    `}).join('');
+
+    // Bắt Event Trigger click của học viên
+    document.querySelectorAll('.option-item').forEach(item => {
+      item.addEventListener('click', function(e) {
+        if (!currentQuestions[this.dataset.qidx].isAnswered) selectAnswer(this.dataset.qidx, this.dataset.val);
+      });
+    });
+    window.scrollTo(0,0); // Tự động kéo trình duyệt lên đỉnh UI
+  }
+
+  // Khối Xử lý Click Lựa chọn đáp án Option List
+  function selectAnswer(qIdx, val) {
+    const q = currentQuestions[qIdx];
+    q.userAnswer = val; // Trữ vào object
+    const card = document.getElementById(`card-${qIdx}`);
+
+    if (!isExamMode) { // Luồng Luyện tập (Bấm là ăn ngay)
+      q.isAnswered = true; // Khóa câu này lại
+      card.querySelectorAll('.option-item').forEach(item => {
+        item.querySelector('input').disabled = true; // Hủy nhấp nháy Input Radio
+        if (item.dataset.val === q.correct_text) item.classList.add('is-correct'); // Bôi viền xanh gốc
+        if (item.dataset.val === val && val !== q.correct_text) item.classList.add('is-wrong'); // Bôi nền đỏ báo sai
+      });
+      if (val === q.correct_text) card.classList.add('correct-highlight'); // Bôi lề trái khối Div xanh
+      else { card.classList.add('wrong-highlight'); document.getElementById(`key-${qIdx}`).style.display = 'block'; } // Bôi lề khối Div đỏ, mở Key
+    } else { // Luồng Thi thử (Để im check vào đó, được đổi liên tục cho đến khi Nộp)
+      card.querySelector(`input[name="q${qIdx}"][value="${val}"]`).checked = true;
+    }
+  }
+
+  // Khối Nút Bấm Trung Gian xác nhận thủ công nộp bài
+  submitBtn.addEventListener('click', () => {
+    if (examSubmitted) return; // Khóa Spaming API Network
+    const unanswered = currentQuestions.filter(q => !q.userAnswer).length; // Map đếm các object null (chưa đánh)
+    document.getElementById('modalBox').innerHTML = `
+      <div style="font-size:3rem; color:#d97706; margin-bottom:1rem;"><i class="fas fa-exclamation-triangle"></i></div>
+      <h3 style="font-size:1.3rem; margin-bottom:1rem;">Khóa chốt sổ nộp bài?</h3>
+      <p style="color:#64748b; margin-bottom:1.5rem;">${unanswered > 0 ? `Bạn đang bỏ trống <b style="color:#ef4444">${unanswered} câu chưa làm</b>.` : 'Hệ thống xác nhận bạn đã đánh đủ 100% Option List.'}</p>
+      <div style="display:flex; gap:10px; justify-content:center;">
+        <button class="btn btn-secondary" onclick="closeModal()">Sửa lại (Hủy)</button>
+        <button class="btn btn-warning" onclick="processCalculatedScore()">Đồng ý Nộp</button>
+      </div>
+    `;
+    customModal.classList.add('show');
+  });
+
+  // HÀM TOÁN HỌC CHẤM ĐIỂM + ĐẨY PAYLOAD API GOOGLE SHEETS
+  function processCalculatedScore() {
+    closeModal(); // Hủy Popup cảnh báo
+    examSubmitted = true; // Khóa Flag hệ thống
+    clearInterval(countdownInterval); // Giết Process Timer
+    
+    let score = 0; // Biến đếm tích lũy
+    currentQuestions.forEach((q, idx) => {
+      q.isAnswered = true; // Block toàn bộ Input Matrix của đề này
+      const isCorrect = q.userAnswer === q.correct_text;
+      if (isCorrect) score++;
+      
+      const card = document.getElementById(`card-${idx}`);
+      card.querySelectorAll('.option-item').forEach(item => {
+        item.querySelector('input').disabled = true;
+        if (item.dataset.val === q.correct_text) item.classList.add('is-correct');
+        if (item.dataset.val === q.userAnswer && !isCorrect) item.classList.add('is-wrong');
+      });
+      card.classList.add(isCorrect ? 'correct-highlight' : 'wrong-highlight');
+      if (!isCorrect) document.getElementById(`key-${idx}`).style.display = 'block';
+    });
+
+    const finalScore = (score / currentQuestions.length) * 10; // Quy đổi thang điểm 10 cứng
+    
+    // 🌟 LUỒNG TRUYỀN DỮ LIỆU NO-CORS (Bắn API Bỏ qua Block Domain)
+    fetch(GOOGLE_API_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        testName: currentRepoName, // Map động vào thư mục Tab Sheet của Python Set tĩnh
+        username: currentUser, // Tên Login từ Modals Ban đầu
+        score: finalScore.toFixed(1), // Ép định dạng 1 phần thập phân Float
+        correct_count: score, // Truyền nguyên Số Integer
+        total_questions: currentQuestions.length // Truyền mảng Total Integer
+      })
+    });
+
+    // Mở màn hình thông báo tổng kết hiển thị điểm cho HS
+    document.getElementById('modalBox').innerHTML = `
+      <div style="font-size:3.5rem; color:#10b981; margin-bottom:1rem;"><i class="fas fa-trophy"></i></div>
+      <h2 style="font-size:1.5rem; color:#1e293b; margin-bottom:0.5rem;">Cập nhật điểm lên hệ thống Cloud thành công!</h2>
+      <div style="font-size:4rem; font-weight:900; color:#3b82f6; margin-bottom:0.5rem;">${finalScore.toFixed(1)}</div>
+      <div style="color:#64748b; font-weight:600; margin-bottom:2rem;">Kết quả đối chiếu: ${score} / ${currentQuestions.length} câu</div>
+      <button class="btn btn-primary" onclick="closeModal()">Đóng cửa sổ - Xem sửa lỗi</button>
+    `;
+    customModal.classList.add('show');
+    window.scrollTo(0,0);
+  }
+
+  function closeModal() { customModal.classList.remove('show'); dashModal.classList.remove('show'); }
+  
+  // Custom JS Toast Notification System
+  function showToast(msg) {
+    const t = document.createElement('div'); t.className = 'toast-custom'; t.innerHTML = `<i class="fas fa-bell"></i> <span>${msg}</span>`;
+    document.getElementById('toastContainer').appendChild(t);
+    setTimeout(() => t.classList.add('show'), 50);
+    setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 3000);
+  }
+
+  // Thuật toán Array Random Slicer (Shuffle List)
+  function shuffleArray(arr) { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; }
+  
+  modeToggle.addEventListener('change', () => initApp(false));
+  document.getElementById('newExamBtn').addEventListener('click', () => { initApp(true); showToast("Đã phá luồng lưu trữ và bốc hệ thống Bộ đề mới!"); });
+
+  // =============================================================
+  // 🔒 LUỒNG BẢO MẬT API - HIỂN THỊ TRỰC TIẾP ĐIỂM SỐ GIÁO VIÊN
+  // (Nhấn Ctrl + Shift + G trên bàn phím đang chạy web)
+  // =============================================================
+  window.addEventListener('keydown', function(e) {
+    if (e.ctrlKey && e.shiftKey && e.key === 'G') {
+      e.preventDefault();
+      const pwd = prompt("🔒 HỆ THỐNG MÁY CHỦ\nYêu cầu xác thực tài khoản (Nhập mã PIN cấu hình):");
+      if (pwd === TEACHER_PIN) {
+        showToast("Xác thực PIN chuẩn. Mở luồng trích xuất Server...");
+        const currentTest = encodeURIComponent(currentRepoName); // Load động tham số API Get từ biến Repo
+        
+        document.getElementById('dashBox').innerHTML = `<h2 style="color:#1e293b;"><i class="fas fa-chart-line" style="color:#3b82f6;"></i> Bảng Điểm Cloud Đồng Bộ</h2><div class="loading-dash"><i class="fas fa-sync fa-spin"></i> Gọi kết nối HTTP sang Google Sheets...</div>`;
+        dashModal.classList.add('show');
+
+        // Bắn GET request kéo Array dữ liệu ma trận Sheets về Website
+        fetch(GOOGLE_API_URL + "?testName=" + currentTest)
+          .then(res => res.json())
+          .then(result => {
+            if(!result.data || result.data.length === 0) { // Catch rỗng
+              document.getElementById('dashBox').innerHTML += `<p style="text-align:center; margin-top:20px; color:#ef4444;">Dữ liệu trống (Tab chưa được tạo hoặc chưa có ai nộp).</p>`;
+              return;
+            }
+            // Vẽ bảng động dữ liệu
+            let html = `<table class="dash-table"><tr><th>Ghi sổ lúc</th><th>Định danh</th><th>Điểm</th><th>Số câu</th></tr>`;
+            result.data.forEach(row => {
+              html += `<tr><td>${row.time}</td><td>${row.name}</td><td style="color:#3b82f6; font-weight:700;">${row.score}</td><td>${row.correct}/${row.total}</td></tr>`;
+            });
+            html += `</table><button class="btn btn-secondary" style="margin-top:20px;" onclick="closeModal()">Đóng kết nối</button>`;
+            document.getElementById('dashBox').innerHTML = `<h2 style="color:#1e293b;"><i class="fas fa-server" style="color:#3b82f6;"></i> Trung Tâm Quản Lý Database</h2>` + html;
+          }).catch(err => {
+            document.getElementById('dashBox').innerHTML += `<p style="color:red; text-align:center;">Network API Timeout: Cáp quang đứt hoặc sai URL Google Sheets.</p>`;
+          });
+      } else {
+        alert("❌ Mã PIN bị chặn bởi Firewall Server!");
+      }
+    }
+  });
+</script>
+</body>
+</html>
